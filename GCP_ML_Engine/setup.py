@@ -1,7 +1,7 @@
 from setuptools import find_packages
 from setuptools import setup
 
-REQUIRED_PACKAGES = ['autotime']
+REQUIRED_PACKAGES = ['tensorflow', '']
 
 setup(
     name='trainer',
