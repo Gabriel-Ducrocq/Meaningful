@@ -1,3 +1,7 @@
+from trainer.src.util import activation_function
+from trainer.task import FLAGS
+import tensorflow as tf
+
 class PhysicalNet:
     def __init__(self):
         self.input_size = 3 * FLAGS.dim_env + FLAGS.color_size

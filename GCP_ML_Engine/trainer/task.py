@@ -1,5 +1,9 @@
 ## Contains the trainer logic that manages the job
 
+# Imports
+import tensorflow as tf
+from trainer.model import Experiment
+
 # Initialise the parameters flags
 flags = tf.app.flags
 FLAGS = flags.FLAGS
@@ -31,3 +35,7 @@ flags.DEFINE_boolean("learning_rate_decay", True, "Wether to use a piecewise lea
 
 # Reset the graphs
 tf.reset_default_graph()
+
+exp = Experiment()
+with tf.Session() as sess:
+    exp.train(sess)

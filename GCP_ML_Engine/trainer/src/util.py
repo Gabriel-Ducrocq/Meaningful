@@ -1,5 +1,12 @@
+import tensorflow as tf
+import numpy as np
+
+
 # Param: x, stacking of the output of fully connected physical network for each agent. Shape = (256, batch_size, nb_agents)
 # return: pooling of input features.
+from trainer.task import FLAGS
+
+
 def softmax_pooling(x):
     # pooling function. Softmax pooling is a compromise between max pooling and average pooling
     coefs = tf.nn.softmax(x, dim=0)

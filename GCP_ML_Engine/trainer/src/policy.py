@@ -1,3 +1,12 @@
+from trainer.src.nets.communicationNet import CommunicationNet
+from trainer.src.nets.lastNet import LastNet
+from trainer.src.nets.physicaNet import PhysicalNet
+import tensorflow as tf
+
+from trainer.src.util import shuffle, softmax_pooling
+from trainer.task import FLAGS
+
+
 class Policy:
     def __init__(self):
         self.phys_network = PhysicalNet()

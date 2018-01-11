@@ -1,3 +1,8 @@
+from trainer.src.util import activation_function
+from trainer.task import FLAGS
+import tensorflow as tf
+
+
 class LastNet:
     def __init__(self):
         self.input_size = 2 * FLAGS.output_size + FLAGS.color_size + FLAGS.number_goal_types + FLAGS.dim_env

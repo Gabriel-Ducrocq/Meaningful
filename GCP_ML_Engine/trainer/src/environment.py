@@ -1,3 +1,8 @@
+from sklearn.preprocessing import OneHotEncoder
+
+from trainer.task import FLAGS
+import numpy as np
+
 class Environment:
     def __init__(self):
         self.enc = OneHotEncoder(n_values=FLAGS.number_goal_types, sparse=False)

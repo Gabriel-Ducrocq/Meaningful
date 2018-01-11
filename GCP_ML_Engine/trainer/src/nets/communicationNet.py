@@ -1,3 +1,9 @@
+import tensorflow as tf
+
+from trainer.src.util import activation_function
+from trainer.task import FLAGS
+
+
 class CommunicationNet:
     def __init__(self):
         self.Weights = []

@@ -1,7 +1,7 @@
 from setuptools import find_packages
 from setuptools import setup
 
-REQUIRED_PACKAGES = ['tensorflow', '']
+REQUIRED_PACKAGES = ['tensorflow', 'numpy', 'matplotlib', 'sklearn', 'datetime', 'ipython-autotime']
 
 setup(
     name='trainer',
