@@ -9,7 +9,7 @@ class CommunicationNet:
         self.Biases = []
         self.Weight_read_mem = tf.tile(
             tf.get_variable("com_memory_read_weight", shape=[1, tf.app.flags.FLAGS.output_size, tf.app.flags.FLAGS.mem_size],
-                            initializer=tf.contrib.layers.xavier_initializer(tf.app.flags.FLAGS.xav_init)),
+                            initializer=tf.orthogonal_initializer()),
             [tf.app.flags.FLAGS.number_agents, 1, 1])
 
         self.init_weights()
@@ -25,19 +25,19 @@ class CommunicationNet:
                 if i == 0:
                     W = tf.tile(
                         tf.get_variable("com_net_weight_" + str(i), shape=[1, tf.app.flags.FLAGS.layer_sizes, tf.app.flags.FLAGS.vocabulary_size],
-                                        initializer=tf.contrib.layers.xavier_initializer(tf.app.flags.FLAGS.xav_init)),
+                                        initializer=tf.orthogonal_initializer()),
                         [tf.app.flags.FLAGS.number_agents, 1, 1])
                     tf.summary.histogram('com_net_weight_' + str(i), W)
                 elif i != (tf.app.flags.FLAGS.number_layers - 1):
                     W = tf.tile(
                         tf.get_variable("com_net_weight_" + str(i), shape=[1, tf.app.flags.FLAGS.layer_sizes, tf.app.flags.FLAGS.layer_sizes],
-                                        initializer=tf.contrib.layers.xavier_initializer(tf.app.flags.FLAGS.xav_init)),
+                                        initializer=tf.orthogonal_initializer()),
                         [tf.app.flags.FLAGS.number_agents, 1, 1])
                     tf.summary.histogram('com_net_weight_' + str(i), W)
                 else:
                     W = tf.tile(
                         tf.get_variable("com_net_weight_" + str(i), shape=[1, tf.app.flags.FLAGS.output_size, tf.app.flags.FLAGS.layer_sizes],
-                                        initializer=tf.contrib.layers.xavier_initializer(tf.app.flags.FLAGS.xav_init)),
+                                        initializer=tf.orthogonal_initializer()),
                         [tf.app.flags.FLAGS.number_agents, 1, 1])
 
                     tf.summary.histogram('com_net_weight_' + str(i), W)
@@ -51,12 +51,12 @@ class CommunicationNet:
             for i in range(tf.app.flags.FLAGS.number_layers):
                 if i < (tf.app.flags.FLAGS.number_layers - 1):
                     B = tf.tile(tf.get_variable("com_net_bias_" + str(i), shape=[1, tf.app.flags.FLAGS.layer_sizes, 1],
-                                                initializer=tf.contrib.layers.xavier_initializer(tf.app.flags.FLAGS.xav_init)),
+                                                initializer=tf.orthogonal_initializer()),
                                 [tf.app.flags.FLAGS.number_agents, 1, 1])
                     tf.summary.histogram('com_net_bias_' + str(i), B)
                 else:
                     B = tf.tile(tf.get_variable("com_net_bias_" + str(i), shape=[1, tf.app.flags.FLAGS.output_size, 1],
-                                                initializer=tf.contrib.layers.xavier_initializer(tf.app.flags.FLAGS.xav_init)),
+                                                initializer=tf.orthogonal_initializer()),
                                 [tf.app.flags.FLAGS.number_agents, 1, 1])
 
                 self.Biases.append(B)
@@ -66,10 +66,10 @@ class CommunicationNet:
         # Their shape are of the form [number of agents, memory_size, output size] and [number of agents, output size, 1]
         # So that we can handle the memories of all agents at onces instead of dealing with list of memories.
         self.W_mem = tf.tile(tf.get_variable("weight_mem_com", shape=[1, tf.app.flags.FLAGS.mem_size, tf.app.flags.FLAGS.output_size],
-                                             initializer=tf.contrib.layers.xavier_initializer(tf.app.flags.FLAGS.xav_init)),
+                                             initializer=tf.orthogonal_initializer()),
                              [tf.app.flags.FLAGS.number_agents, 1, 1])
         self.b_mem = tf.tile(tf.get_variable("bias_mem_com", shape=[1, tf.app.flags.FLAGS.mem_size, 1],
-                                             initializer=tf.contrib.layers.xavier_initializer(tf.app.flags.FLAGS.xav_init)),
+                                             initializer=tf.orthogonal_initializer()),
                              [tf.app.flags.FLAGS.number_agents, 1, 1])
 
     def compute_output(self, x, memory):
@@ -81,5 +81,5 @@ class CommunicationNet:
             else:
                 x = activation_function(tf.matmul(W, x) + tf.matmul(self.Weight_read_mem, memory) + b)
 
-        delta_mem = tf.add(tf.matmul(self.W_mem, x), self.b_mem)
+        delta_mem = activation_function(tf.add(tf.matmul(self.W_mem, x), self.b_mem))
         return x, delta_mem

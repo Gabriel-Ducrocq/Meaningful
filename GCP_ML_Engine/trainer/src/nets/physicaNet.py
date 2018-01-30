@@ -1,6 +1,7 @@
 from trainer.src.util import activation_function
 import tensorflow as tf
 
+
 class PhysicalNet:
     def __init__(self):
         self.input_size = 3 * tf.app.flags.FLAGS.dim_env + tf.app.flags.FLAGS.color_size
@@ -19,17 +20,17 @@ class PhysicalNet:
             for i in range(tf.app.flags.FLAGS.number_layers):
                 if i == 0:
                     W = tf.tile(tf.get_variable("weight_" + str(i), shape=[1, tf.app.flags.FLAGS.layer_sizes, self.input_size],
-                                                initializer=tf.contrib.layers.xavier_initializer(tf.app.flags.FLAGS.xav_init)),
+                                                initializer=tf.orthogonal_initializer()),
                                 [tf.app.flags.FLAGS.number_agents + tf.app.flags.FLAGS.number_landmarks, 1, 1])
                     tf.summary.histogram('phys_net_weight_' + str(i), W)
                 elif i != (tf.app.flags.FLAGS.number_layers - 1):
                     W = tf.tile(tf.get_variable("weight_" + str(i), shape=[1, tf.app.flags.FLAGS.layer_sizes, tf.app.flags.FLAGS.layer_sizes],
-                                                initializer=tf.contrib.layers.xavier_initializer(tf.app.flags.FLAGS.xav_init)),
+                                                initializer=tf.orthogonal_initializer()),
                                 [tf.app.flags.FLAGS.number_agents + tf.app.flags.FLAGS.number_landmarks, 1, 1])
                     tf.summary.histogram('phys_net_weight_' + str(i), W)
                 else:
                     W = tf.tile(tf.get_variable("weight_" + str(i), shape=[1, tf.app.flags.FLAGS.output_size, tf.app.flags.FLAGS.layer_sizes],
-                                                initializer=tf.contrib.layers.xavier_initializer(tf.app.flags.FLAGS.xav_init)),
+                                                initializer=tf.orthogonal_initializer()),
                                 [tf.app.flags.FLAGS.number_agents + tf.app.flags.FLAGS.number_landmarks, 1, 1])
                     tf.summary.histogram('phys_net_weight_' + str(i), W)
 
@@ -42,12 +43,12 @@ class PhysicalNet:
             for i in range(tf.app.flags.FLAGS.number_layers):
                 if i < (tf.app.flags.FLAGS.number_layers - 1):
                     B = tf.tile(tf.get_variable("bias_" + str(i), shape=[1, tf.app.flags.FLAGS.layer_sizes, 1],
-                                                initializer=tf.contrib.layers.xavier_initializer(tf.app.flags.FLAGS.xav_init)),
+                                                initializer=tf.orthogonal_initializer()),
                                 [tf.app.flags.FLAGS.number_agents + tf.app.flags.FLAGS.number_landmarks, 1, 1])
                     tf.summary.histogram('phys_net_bias_' + str(i), B)
                 else:
                     B = tf.tile(tf.get_variable("bias_" + str(i), shape=[1, tf.app.flags.FLAGS.output_size, 1],
-                                                initializer=tf.contrib.layers.xavier_initializer(tf.app.flags.FLAGS.xav_init)),
+                                                initializer=tf.orthogonal_initializer()),
                                 [tf.app.flags.FLAGS.number_agents + tf.app.flags.FLAGS.number_landmarks, 1, 1])
 
                 self.Biases.append(B)

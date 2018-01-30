@@ -58,4 +58,6 @@ class Policy:
         utterances_output = gumbel_max_trick(output_last)
         phys_output = tf.concat([velocities_output, gazes_output], axis=1)
 
+        phys_output = tf.Print(phys_output, ["coucou"])
+
         return phys_output, velocities_output, gazes_output, utterances_output, delta_mem_com, delta_mem_last

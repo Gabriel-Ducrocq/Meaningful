@@ -1,11 +1,74 @@
-import tensorflow as tf
+import matplotlib.pyplot as plt
 import numpy as np
+import os
+import tensorflow as tf
+from pathlib import Path
+import shutil
+
+def memory():
+    import os
+    import psutil
+    pid = os.getpid()
+    py = psutil.Process(pid)
+    memoryUse = py.memory_info()[0] / 2. ** 30  # memory use in GB...I think
+    print('memory use:', memoryUse)
+
+
+def plot_trajectory(coordinates, target_point):
+    x = coordinates[1:-1, 0]
+    y = coordinates[1:-1, 1]
+
+    x_start = coordinates[0, 0]
+    y_start = coordinates[0, 1]
+
+    x_final = coordinates[-1, 0]
+    y_final = coordinates[-1, 1]
+
+    x_target, y_target = target_point
+
+    plt.plot(x, y, "o")
+    plt.plot(x_start, y_start, 'ro')
+    plt.plot(x_target, y_target, 'go')
+    plt.plot(x_final, y_final, 'yo')
+    plt.show()
+
+
+def python_shuffle(positions, shuffle_indexes):
+    shuffled_array = np.stack(
+        [positions[shuffle_indexes[:, 0, i], :, i] for i in range(tf.app.flags.FLAGS.batch_size)], axis=2)
+    return shuffled_array
+
+
+def delete_history_files():
+    if os.path.isfile("env_history.pkl"):
+        os.remove("env_history.pkl")
+
+    if os.path.isfile("arrays_history.pkl"):
+        os.remove("arrays_history.pkl")
+
+    if Path("Summary").is_dir():
+        shutil.rmtree("Summary")
+
+
+def print_stat_vocabulary(utterances_array):
+    x = np.argmax(utterances_array, axis=2)
+    diff_words = len(np.unique(x))
+    print(diff_words)
+
+
+def dirichlet_log_lik(utterances_array):
+    tr = tf.argmax(utterances_array, axis=2)
+    oh = tf.one_hot(tr, depth=20)
+    cs = tf.cumsum(oh, axis=0)
+    total_nb_uttered = tf.reshape(tf.reduce_sum(cs, axis=[1, 2, 3]), [51, 1])
+    by_symbol = tf.reduce_sum(cs, axis=[1, 2])
+    final = tf.log(by_symbol / (tf.app.flags.FLAGS.alpha_dirichlet + total_nb_uttered - 1))
+    neg_log_likelihood = - tf.reduce_sum(final)
+    return neg_log_likelihood
 
 
 # Param: x, stacking of the output of fully connected physical network for each agent. Shape = (256, batch_size, nb_agents)
 # return: pooling of input features.
-
-
 def softmax_pooling(x):
     # pooling function. Softmax pooling is a compromise between max pooling and average pooling
     coefs = tf.nn.softmax(x, dim=0)
@@ -31,7 +94,7 @@ def gumbel_max_trick(x):
 
 
 def sample_phys(x):
-    # Input output of the last network.
+    # Input: output of the last network.
     # Output: sampled values for new velocity and gaze
     u = tf.random_normal(shape=[tf.app.flags.FLAGS.number_agents, 2 * tf.app.flags.FLAGS.dim_env, tf.app.flags.FLAGS.batch_size], dtype=tf.float32,
                          stddev=tf.app.flags.FLAGS.sddev_phys_sampling)
@@ -41,35 +104,65 @@ def sample_phys(x):
     return sample_move, sample_gaze
 
 
-def compute_new_states(old_states, new_velocities, new_gazes, new_utterances):
+def compute_new_states(old_states, new_velocities, new_delta_gazes, new_utterances):
     # Computes the new states according to the equations of the papers.
     # Input: the old states of shape [number agents + nb_landmarks, 3*env dim + color size, batch size] because color is in state
     # and of shape [number_agents, 2*env_dim, batch size]
     # Adding the outputs of landmark, which are all zeros.
-    new_velocities = tf.concat([new_velocities, tf.zeros([tf.app.flags.FLAGS.number_landmarks, tf.app.flags.FLAGS.dim_env, tf.app.flags.FLAGS.batch_size])],
-                               axis=0)
-    new_gazes = tf.concat([new_gazes, tf.zeros([tf.app.flags.FLAGS.number_landmarks, tf.app.flags.FLAGS.dim_env, tf.app.flags.FLAGS.batch_size])],
-                          axis=0)
+    # new_velocities = tf.concat([new_velocities, tf.zeros([FLAGS.number_landmarks, FLAGS.dim_env, FLAGS.batch_size])],
+    #                                       axis = 0)
+
+    # new_delta_gazes = tf.concat([new_delta_gazes, tf.zeros([FLAGS.number_landmarks, FLAGS.dim_env, FLAGS.batch_size])],
+    #                                       axis = 0)
+
+    # old_velocity = tf.slice(old_states, [0, FLAGS.dim_env, 0],
+    #                        [FLAGS.number_agents + FLAGS.number_landmarks, FLAGS.dim_env, FLAGS.batch_size])
+
+    # old_gazes = tf.slice(old_states, [0, 2*FLAGS.dim_env, 0],
+    #                        [FLAGS.number_agents + FLAGS.number_landmarks, FLAGS.dim_env, FLAGS.batch_size])
+
+    # new_pos = tf.slice(old_states, [0, 0, 0],
+    #                   [FLAGS.number_agents + FLAGS.number_landmarks, FLAGS.dim_env, FLAGS.batch_size]) + old_velocity*FLAGS.delta_t
+
+    # new_gazes = old_gazes + new_delta_gazes*FLAGS.delta_t
+
+    # new_velocity = (1 - FLAGS.damping_coef)*old_velocity + new_velocities*FLAGS.delta_t
 
     old_velocity = tf.slice(old_states, [0, tf.app.flags.FLAGS.dim_env, 0],
-                            [tf.app.flags.FLAGS.number_agents + tf.app.flags.FLAGS.number_landmarks, tf.app.flags.FLAGS.dim_env, tf.app.flags.FLAGS.batch_size])
-    new_pos = tf.slice(old_states, [0, 0, 0],
-                       [tf.app.flags.FLAGS.number_agents + tf.app.flags.FLAGS.number_landmarks, tf.app.flags.FLAGS.dim_env, tf.app.flags.FLAGS.batch_size]) + old_velocity
+                            [tf.app.flags.FLAGS.number_agents, tf.app.flags.FLAGS.dim_env, tf.app.flags.FLAGS.batch_size])
 
-    new_velocity = (1 - tf.app.flags.FLAGS.damping_coef) * old_velocity + new_velocities * tf.app.flags.FLAGS.delta_t
+    old_gazes = tf.slice(old_states, [0, 2 * tf.app.flags.FLAGS.dim_env, 0],
+                         [tf.app.flags.FLAGS.number_agents, tf.app.flags.FLAGS.dim_env, tf.app.flags.FLAGS.batch_size])
+
+    new_pos_agents = tf.slice(old_states, [0, 0, 0],
+                              [tf.app.flags.FLAGS.number_agents, tf.app.flags.FLAGS.dim_env, tf.app.flags.FLAGS.batch_size]) + old_velocity * tf.app.flags.FLAGS.delta_t
+
+    new_pos_landmarks = tf.slice(old_states, [tf.app.flags.FLAGS.number_agents, 0, 0],
+                                 [tf.app.flags.FLAGS.number_landmarks, tf.app.flags.FLAGS.dim_env, tf.app.flags.FLAGS.batch_size])
+    new_pos = tf.concat([new_pos_agents, new_pos_landmarks], axis=0)
+
+    new_gazes_agents = old_gazes + new_delta_gazes * tf.app.flags.FLAGS.delta_t
+    new_gazes_landmarks = tf.zeros([tf.app.flags.FLAGS.number_landmarks, tf.app.flags.FLAGS.dim_env, tf.app.flags.FLAGS.batch_size])
+    new_gazes = tf.concat([new_gazes_agents, new_gazes_landmarks], axis=0)
+
+    new_velocity_agents = (1 - tf.app.flags.FLAGS.damping_coef) * old_velocity + new_velocities * tf.app.flags.FLAGS.delta_t
+    new_velocity_landmarks = tf.zeros([tf.app.flags.FLAGS.number_landmarks, tf.app.flags.FLAGS.dim_env, tf.app.flags.FLAGS.batch_size])
+    new_velocity = tf.concat([new_velocity_agents, new_velocity_landmarks], axis=0)
 
     colors = tf.slice(old_states, [0, 3 * tf.app.flags.FLAGS.dim_env, 0], [tf.app.flags.FLAGS.number_agents + tf.app.flags.FLAGS.number_landmarks,
                                                                            tf.app.flags.FLAGS.color_size, tf.app.flags.FLAGS.batch_size])
     new_states = tf.concat([new_pos, new_velocity, new_gazes, colors], axis=1)
 
-    return new_states, new_pos
+    return new_states, new_pos, new_gazes
 
 
 def compute_new_memories(old_mem_com, old_mem_last, delta_mem_com, delta_mem_last):
-    new_memory_com = tf.tanh(old_mem_com + delta_mem_com + tf.random_normal([tf.app.flags.FLAGS.number_agents, tf.app.flags.FLAGS.mem_size,
-                                                                             tf.app.flags.FLAGS.batch_size], tf.app.flags.FLAGS.stddev_memory))
-    new_memory_last = tf.tanh(old_mem_last + delta_mem_last + tf.random_normal([tf.app.flags.FLAGS.number_agents, tf.app.flags.FLAGS.mem_size,
-                                                                                tf.app.flags.FLAGS.batch_size], tf.app.flags.FLAGS.stddev_memory))
+    new_memory_com = tf.tanh(
+        (2 / 3) * (old_mem_com + delta_mem_com + tf.random_normal([tf.app.flags.FLAGS.number_agents, tf.app.flags.FLAGS.mem_size,
+                                                                   tf.app.flags.FLAGS.batch_size], tf.app.flags.FLAGS.stddev_memory)))
+    new_memory_last = tf.tanh(
+        (2 / 3) * (old_mem_last + delta_mem_last + tf.random_normal([tf.app.flags.FLAGS.number_agents, tf.app.flags.FLAGS.mem_size,
+                                                                     tf.app.flags.FLAGS.batch_size], tf.app.flags.FLAGS.stddev_memory)))
 
     return new_memory_com, new_memory_last
 
@@ -102,16 +195,18 @@ def compute_reward(positions, gazes, outputs, utterances, name_targets, goals_lo
     pos_distances = tf.reshape(tf.reduce_sum(tf.square((shuffled_positions - goals_loc)), axis=1),
                                [tf.app.flags.FLAGS.number_agents, 1,
                                 tf.app.flags.FLAGS.batch_size])
+
     gaze_distances = tf.reshape(tf.reduce_sum(tf.square((shuffled_gazes - goals_loc)), axis=1), [tf.app.flags.FLAGS.number_agents, 1,
                                                                                                  tf.app.flags.FLAGS.batch_size])
     zeros = tf.zeros([tf.app.flags.FLAGS.number_agents, 1, tf.app.flags.FLAGS.batch_size])
     x = tf.concat([pos_distances, gaze_distances, zeros], axis=1)
+
     dists_goal = -tf.reduce_sum(tf.multiply(x, goals_types), axis=1)
 
     utterances_term = -tf.reduce_sum(tf.square(utterances), axis=1)
     output_term = -tf.reduce_sum(tf.square(outputs), axis=1)
 
-    reward_by_batch = tf.reshape(tf.reduce_sum(dists_goal + utterances_term + 0.1 * output_term, axis=0),
+    reward_by_batch = tf.reshape(tf.reduce_sum(dists_goal + utterances_term + output_term, axis=0),
                                  [tf.app.flags.FLAGS.batch_size, 1])
 
     return reward_by_batch
@@ -122,16 +217,16 @@ def compute_goal_dist(states, goal_location, goal_type):
                                 [tf.app.flags.FLAGS.number_agents, 1, tf.app.flags.FLAGS.batch_size])
     dist_gazes = np.reshape(np.sqrt(np.sum((states[0:tf.app.flags.FLAGS.number_agents, 4:6, :] - goal_location) ** 2, axis=1)),
                             [tf.app.flags.FLAGS.number_agents, 1, tf.app.flags.FLAGS.batch_size])
-
     v = np.concatenate([dist_positions, dist_gazes, np.zeros((tf.app.flags.FLAGS.number_agents, 1, tf.app.flags.FLAGS.batch_size))], axis=1)
     goal_distances = np.sum(np.multiply(v, goal_type), axis=1)
 
     return goal_distances
 
 
-def print_stats_agent(states, goal_location, goal_type):
+def print_stats_agent(states, goal_location, goal_type, targets):
     # Only considering non "do nothing goals"
-    goal_distances = compute_goal_dist(states, goal_location, goal_type)
+    shuffled_states = python_shuffle(states, targets)
+    goal_distances = compute_goal_dist(shuffled_states, goal_location, goal_type)
 
     for i in range(tf.app.flags.FLAGS.number_agents):
         distances_agents = goal_distances[i, :]
@@ -140,10 +235,12 @@ def print_stats_agent(states, goal_location, goal_type):
         median = np.median(goal_wo_zeros)
         third_quart = np.percentile(goal_wo_zeros, 75)
         nine_pct = np.percentile(goal_wo_zeros, 90)
-        max_dist = np.max(goal_wo_zeros)
+        max_dist = np.max(distances_agents)
+        argmax = np.argmax(distances_agents)
         print("--- Agent " + str(i))
         print("------ Mean distance " + str(mean))
         print("------ Median distance " + str(median))
         print("------ Third quartile " + str(third_quart))
         print("------ Ninetieth percentile " + str(nine_pct))
         print("------ max distance " + str(max_dist))
+        print("------ argmax distance " + str(argmax))
