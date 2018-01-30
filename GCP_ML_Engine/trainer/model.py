@@ -1,3 +1,5 @@
+## Contains the TensorFlow graph code—the logic of the model
+
 # Imports
 import datetime
 from trainer.src.environment import Environment
@@ -5,7 +7,6 @@ from trainer.src.memory import memory
 from trainer.src.policy import Policy
 import tensorflow as tf
 from trainer.src.util import print_stats_agent, compute_new_states, compute_new_memories, compute_reward
-from trainer.task import FLAGS
 
 
 class Experiment:
@@ -30,20 +31,20 @@ class Experiment:
 
     def learning_rate_decay(self):
         self.global_step = tf.Variable(0, trainable=False)
-        if FLAGS.learning_rate_decay:
-            starter_learning_rate = FLAGS.learning_rate
+        if tf.app.flags.FLAGS.learning_rate_decay:
+            starter_learning_rate = tf.app.flags.FLAGS.learning_rate
             boundaries = [1000]
-            values = [FLAGS.learning_rate, FLAGS.learning_rate / 10]
+            values = [tf.app.flags.FLAGS.learning_rate, tf.app.flags.FLAGS.learning_rate / 10]
             return tf.train.piecewise_constant(self.global_step, boundaries, values, name=None)
         else:
-            return FLAGS.learning_rate
+            return tf.app.flags.FLAGS.learning_rate
 
     def definition_arrays(self):
         # Create goals vectors
-        self.array_states = tf.TensorArray(dtype=tf.float32, size=(FLAGS.time_horizon + 1), clear_after_read=False)
-        self.array_utterances = tf.TensorArray(dtype=tf.float32, size=(FLAGS.time_horizon + 1), clear_after_read=False)
-        self.array_mem_com = tf.TensorArray(dtype=tf.float32, size=(FLAGS.time_horizon + 1), clear_after_read=False)
-        self.array_mem_last = tf.TensorArray(dtype=tf.float32, size=(FLAGS.time_horizon + 1), clear_after_read=False)
+        self.array_states = tf.TensorArray(dtype=tf.float32, size=(tf.app.flags.FLAGS.time_horizon + 1), clear_after_read=False)
+        self.array_utterances = tf.TensorArray(dtype=tf.float32, size=(tf.app.flags.FLAGS.time_horizon + 1), clear_after_read=False)
+        self.array_mem_com = tf.TensorArray(dtype=tf.float32, size=(tf.app.flags.FLAGS.time_horizon + 1), clear_after_read=False)
+        self.array_mem_last = tf.TensorArray(dtype=tf.float32, size=(tf.app.flags.FLAGS.time_horizon + 1), clear_after_read=False)
 
     def get_placeholders(self):
         [self.states, self.utterances, self.mem_com, self.mem_last, self.goal_types, self.goal_locations,
@@ -57,7 +58,7 @@ class Experiment:
 
     def loop(self):
         t = tf.constant(0)
-        return_sofar = tf.zeros([FLAGS.batch_size, 1], tf.float32)
+        return_sofar = tf.zeros([tf.app.flags.FLAGS.batch_size, 1], tf.float32)
         args = [self.array_states, self.array_utterances, self.array_mem_com, self.array_mem_last, self.goal_types,
                 self.goal_locations, self.full_goals, self.name_targets, t, return_sofar]
 
@@ -122,7 +123,7 @@ class Experiment:
     def condition(self, array_states, array_utterances, array_mem_com, array_mem_last, goal_types, goal_locations,
                   full_goals,
                   name_targets, t, return_sofar):
-        return tf.less(t, FLAGS.time_horizon)
+        return tf.less(t, tf.app.flags.FLAGS.time_horizon)
 
     def create_feed_dict(self, states, utterances, memories_com, memories_last, goal_locations, goal_types, targets):
         list_values = [states, utterances, memories_com, memories_last, goal_types, goal_locations, targets]
@@ -137,7 +138,7 @@ class Experiment:
         sess.graph.finalize()
         print("Start training")
         start = datetime.now()
-        for i in range(FLAGS.max_steps):
+        for i in range(tf.app.flags.FLAGS.max_steps):
             states, utterances, memories_com, memories_last, goal_locations, goal_types, targets = self.env.random_generation()
             generation_time = datetime.now() - start
             feed_dict = self.create_feed_dict(states, utterances, memories_com, memories_last, goal_locations,
@@ -148,7 +149,7 @@ class Experiment:
             # self.env_history.append([states, utterances, memories_com, memories_last, goal_locations, goal_types, targets])
             # self.arrays_history.append([array_states, array_utterances, array_mem_com, array_mem_last])
 
-            if i % FLAGS.print_frequency == 0:
+            if i % tf.app.flags.FLAGS.print_frequency == 0:
                 print("\n")
                 print("iteration " + str(i))
                 print(reward)

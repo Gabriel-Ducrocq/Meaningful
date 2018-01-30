@@ -24,3 +24,4 @@ gcloud ml-engine jobs submit training JOB (The name for your job, which must be 
 # Useful links
 https://cloud.google.com/ml-engine/docs/packaging-trainer
 https://cloud.google.com/sdk/gcloud/reference/ml-engine/jobs/submit/training
+https://blog.metaflow.fr/tensorflow-a-proposal-of-good-practices-for-files-folders-and-models-architecture-f23171501ae3

@@ -3,8 +3,7 @@ from trainer.src.nets.lastNet import LastNet
 from trainer.src.nets.physicaNet import PhysicalNet
 import tensorflow as tf
 
-from trainer.src.util import shuffle, softmax_pooling
-from trainer.task import FLAGS
+from trainer.src.util import shuffle, softmax_pooling, sample_phys, gumbel_max_trick
 
 
 class Policy:
@@ -17,19 +16,19 @@ class Policy:
         self.define_full_goals()
 
     def define_placeholders(self):
-        self.states = tf.placeholder(tf.float32, [FLAGS.number_agents + FLAGS.number_landmarks,
-                                                  3 * FLAGS.dim_env + FLAGS.color_size, FLAGS.batch_size])
-        self.utterances = tf.placeholder(tf.float32, [FLAGS.number_agents, FLAGS.vocabulary_size, FLAGS.batch_size])
-        self.memories_com = tf.placeholder(tf.float32, [FLAGS.number_agents, FLAGS.mem_size, FLAGS.batch_size])
-        self.memories_last = tf.placeholder(tf.float32, [FLAGS.number_agents, FLAGS.last_mem_size, FLAGS.batch_size])
-        self.goal_types = tf.placeholder(tf.float32, [FLAGS.number_agents, FLAGS.number_goal_types, FLAGS.batch_size])
-        self.goal_locations = tf.placeholder(tf.float32, [FLAGS.number_agents, FLAGS.dim_env, FLAGS.batch_size])
-        self.name_targets = tf.placeholder(tf.int32, [FLAGS.number_agents, 1, FLAGS.batch_size])
+        self.states = tf.placeholder(tf.float32, [tf.app.flags.FLAGS.number_agents + tf.app.flags.FLAGS.number_landmarks,
+                                                  3 * tf.app.flags.FLAGS.dim_env + tf.app.flags.FLAGS.color_size, tf.app.flags.FLAGS.batch_size])
+        self.utterances = tf.placeholder(tf.float32, [tf.app.flags.FLAGS.number_agents, tf.app.flags.FLAGS.vocabulary_size, tf.app.flags.FLAGS.batch_size])
+        self.memories_com = tf.placeholder(tf.float32, [tf.app.flags.FLAGS.number_agents, tf.app.flags.FLAGS.mem_size, tf.app.flags.FLAGS.batch_size])
+        self.memories_last = tf.placeholder(tf.float32, [tf.app.flags.FLAGS.number_agents, tf.app.flags.FLAGS.last_mem_size, tf.app.flags.FLAGS.batch_size])
+        self.goal_types = tf.placeholder(tf.float32, [tf.app.flags.FLAGS.number_agents, tf.app.flags.FLAGS.number_goal_types, tf.app.flags.FLAGS.batch_size])
+        self.goal_locations = tf.placeholder(tf.float32, [tf.app.flags.FLAGS.number_agents, tf.app.flags.FLAGS.dim_env, tf.app.flags.FLAGS.batch_size])
+        self.name_targets = tf.placeholder(tf.int32, [tf.app.flags.FLAGS.number_agents, 1, tf.app.flags.FLAGS.batch_size])
         # self.colors = tf.placeholder(tf.float32, [FLAGS.number_agents, FLAGS.color_size, FLAGS.batch_size])
 
     def define_full_goals(self):
-        colors = tf.slice(self.states, [0, 3 * FLAGS.dim_env, 0],
-                          [FLAGS.number_agents, FLAGS.color_size, FLAGS.batch_size])
+        colors = tf.slice(self.states, [0, 3 * tf.app.flags.FLAGS.dim_env, 0],
+                          [tf.app.flags.FLAGS.number_agents, tf.app.flags.FLAGS.color_size, tf.app.flags.FLAGS.batch_size])
         shuffled_colors = shuffle(colors, self.name_targets, colors=True)
         self.full_goals = tf.concat([self.goal_types, self.goal_locations, shuffled_colors], axis=1)
 
@@ -48,8 +47,8 @@ class Policy:
         PhiC = softmax_pooling(comm_output)
 
         # Step 3: feeding the last network
-        PhiX_last = tf.tile(tf.reshape(PhiX, [1, FLAGS.output_size, FLAGS.batch_size]), [FLAGS.number_agents, 1, 1])
-        PhiC_last = tf.tile(tf.reshape(PhiC, [1, FLAGS.output_size, FLAGS.batch_size]), [FLAGS.number_agents, 1, 1])
+        PhiX_last = tf.tile(tf.reshape(PhiX, [1, tf.app.flags.FLAGS.output_size, tf.app.flags.FLAGS.batch_size]), [tf.app.flags.FLAGS.number_agents, 1, 1])
+        PhiC_last = tf.tile(tf.reshape(PhiC, [1, tf.app.flags.FLAGS.output_size, tf.app.flags.FLAGS.batch_size]), [tf.app.flags.FLAGS.number_agents, 1, 1])
 
         input_last = tf.concat([PhiX_last, goals_last, PhiC_last], axis=1)
 
