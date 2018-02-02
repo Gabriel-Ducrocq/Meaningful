@@ -1,5 +1,4 @@
 import tensorflow as tf
-
 from trainer.src.util import activation_function
 
 

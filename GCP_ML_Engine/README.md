@@ -20,6 +20,18 @@ gcloud ml-engine jobs submit training JOB (The name for your job, which must be 
     [--staging-bucket=STAGING_BUCKET] (Cloud Storage location that you want the tool to use to stage your training and dependency packages)
     [--async     | --stream-logs]
     [GCLOUD_WIDE_FLAG …] [-- USER_ARGS …]
+    
+    
+- How to upload and launch on GCP:
+    - Take the project packaged as specified in the tutorial (tar+ gz)
+    - Upload it on GCP console
+    - Specify variables
+        - now=$(date +"%Y%m%d_%H%M%S")  then  JOB_NAME="census_$now"
+        - $MAIN_TRAINER_MODULE= trainer.task
+    - 
+    
+ gcloud ml-engine jobs submit training $JOB_NAME --staging-bucket "gs://meaningful_output" --module-name $MAIN_TRAINER_MODULE --region europe-west1 --packages "GCP_M
+L_Engine.tar.gz"
 
 # Useful links
 https://cloud.google.com/ml-engine/docs/packaging-trainer

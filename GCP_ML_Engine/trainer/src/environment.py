@@ -1,5 +1,4 @@
 from sklearn.preprocessing import OneHotEncoder
-
 import numpy as np
 import tensorflow as tf
 

@@ -1,7 +1,9 @@
 from setuptools import find_packages
 from setuptools import setup
 
-REQUIRED_PACKAGES = ['tensorflow', 'numpy', 'matplotlib', 'sklearn', 'datetime', 'ipython-autotime']
+REQUIRED_PACKAGES = ['tensorflow', 'numpy', 'sklearn', 'datetime', 'ipython-autotime', 'pathlib']
+
+# removed matplotlib
 
 setup(
     name='Meaningful',
