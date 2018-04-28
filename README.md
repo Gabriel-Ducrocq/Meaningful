@@ -10,5 +10,5 @@ The next task is to understand why and correct the code.
 
 Techno:
 - Python
--Tensorflow
+- Tensorflow
     
