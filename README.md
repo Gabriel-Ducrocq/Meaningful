@@ -6,4 +6,9 @@ This paper is about the emergence of language between agents of reinforcement le
 The work is currently in progress: a "compositional" language emerges in a simple case - when the agents only need to exchange the goal locations, with only one goal type.
 In the general case - several actions with several landmarks - the agents are able to cooperate and exchange informations to achieve their goals while using only few vocabulary tokens, but the language is obviously not compositional. 
 The next task is to understand why and correct the code.
+
+
+Techno:
+- Python
+-Tensorflow
     
